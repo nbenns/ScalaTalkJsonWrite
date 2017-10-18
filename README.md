@@ -70,6 +70,8 @@ object Family {
 }
 ```
 
+Again we now need to convert the each child element before the list, a little annoying, but not that bad.
+
 ### Usage
 
 No change to our usage
