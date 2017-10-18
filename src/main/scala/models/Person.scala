@@ -1,9 +1,9 @@
 package models
 
-import json.JsonConvertable
+import json.JsonConvertible
 import json.models._
 
-case class Person(name: String, age: Int, alive: Boolean, nickName: Option[String]) extends JsonConvertable {
+case class Person(name: String, age: Int, alive: Boolean, nickName: Option[String]) extends JsonConvertible {
   override def toJson =
     if (nickName.isEmpty) JsonObject(
       "name" -> JsonString(name),

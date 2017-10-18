@@ -26,7 +26,7 @@ sealed abstract class Json {
 
 We now introduce a way to convert to Json.
 ```scala
-trait JsonConvertable {
+trait JsonConvertible {
   def toJson: Json
 }
 ```
@@ -54,7 +54,7 @@ case class Person(name: String, age: Int, alive: Boolean, nickName: Option[Strin
 
 **Family**
 ```scala
-case class Family(surName: String, mother: Person, father: Person, children: List[Person]) extends JsonConvertable {
+case class Family(surName: String, mother: Person, father: Person, children: List[Person]) extends JsonConvertible {
   override def toJson = JsonObject(
     "surName" -> JsonString(surName),
     "mother" -> mother.toJson,

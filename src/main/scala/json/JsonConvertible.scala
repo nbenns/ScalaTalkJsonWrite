@@ -2,6 +2,6 @@ package json
 
 import json.models.Json
 
-trait JsonConvertable {
+trait JsonConvertible {
   def toJson: Json
 }
