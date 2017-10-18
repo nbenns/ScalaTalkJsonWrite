@@ -8,76 +8,65 @@ Slides are located [here](https://docs.google.com/presentation/d/13akNnJCuATS0mq
 The idea in this talk is to implement a JSON serializer library that we can use with the least amount of effort possible, and the least amount of bleed into our business design.
 <br/>
 <br/>
-We continue by trying to fix the lopsidedness of the usage of the library  
+We take our new extension method pattern and use it for our model.  
 
-## Example 3 - Same interface for Primitives
+## Example 4 - Switch our Model to Extension Methods
 
-In the second example we implemented a method to convert to Json instead of extending it.
-This time we want to treat primitives outside our model the same way (by calling `.toJson` on them). 
+In the 3rd example, we used extension methods on primitives to give them a `.toJson` method.
+Here we try to implement the same pattern on our model to separate the conversion from our business logic.
 
-### Library Design
+### Library design
 
-Inside our library we now add some [Extension Methods](https://sachabarbs.wordpress.com/2015/10/23/scala-extension-methods/) for the primatives we are using.
+Since we want to remove the inheritance of the JsonConvertible from our Models, we need to make one change in one of our implicit classes
+The SeqToJson class requires that each element extends JsonConvertible, but now all we will be able to do is require that they are Json instead.
+This means we loose some power, but all we need to do is convert the elements first and then the list itself, so its not that big of a deal.
 
-**Boolean**
 ```scala
-implicit class BooleanToJson(b: Boolean) extends JsonConvertable {
-  override def toJson = JsonBoolean(b)
+implicit class SeqToJson[A <: Json](l: Seq[A]) extends JsonConvertible {
+  override def toJson = JsonArray(l: _*)
 }
-```
+``` 
 
-**Number**
-```scala
-implicit class IntToJson(i: Int) extends JsonConvertable {
-  override def toJson = JsonNumber(i)
-}
-
-implicit class DoubleToJson(d: Double) extends JsonConvertable {
-  override def toJson = JsonNumber(d)
-}
-```
-
-**String**
-```scala
-implicit class StringToJson(s: String) extends JsonConvertable {
-  override def toJson = JsonString(s)
-}
-```
-
-**Array**
-```scala
-implicit class SeqToJson[A <: JsonConvertable](l: Seq[A]) extends JsonConvertable {
-  override def toJson = JsonArray(l.map(_.toJson): _*)
-}
-```
 ### Business Model
+
+Extension methods for our types
 
 **Person**
 ```scala
-case class Person(name: String, age: Int, alive: Boolean, nickName: Option[String]) extends JsonConvertible {
-  override def toJson =
-    if (nickName.isEmpty) JsonObject(
-      "name" -> name.toJson,
-      "age" -> age.toJson,
-      "alive" -> alive.toJson
-    ) else JsonObject(
-      "name" -> name.toJson,
-      "age" -> age.toJson,
-      "alive" -> alive.toJson,
-      "nickname" -> nickName.get.toJson
-    )
+case class Person(name: String, age: Int, alive: Boolean, nickName: Option[String])
+
+object Person {
+  implicit class PersonToJson(p: Person) extends JsonConvertible {
+    override def toJson =
+      if (p.nickName.isEmpty) JsonObject(
+        "name" -> p.name.toJson,
+        "age" -> p.age.toJson,
+        "alive" -> p.alive.toJson
+      ) else JsonObject(
+        "name" -> p.name.toJson,
+        "age" -> p.age.toJson,
+        "alive" -> p.alive.toJson,
+        "nickname" -> p.nickName.get.toJson
+      )
+  }
 }
 ```
 
+We are able to implement the extension method for Person, and putting it inside the companion object saves us an import as it will be found on implicit search.
+
 **Family**
 ```scala
-case class Family(surName: String, mother: Person, father: Person, children: List[Person]) extends JsonConvertible {
-  override def toJson = JsonObject(
-    "surName" -> surName.toJson,
-    "mother" -> mother.toJson,
-    "father" -> father.toJson,
-    "children" -> children.toJson
-  )
+case class Family(surName: String, mother: Person, father: Person, children: List[Person])
+
+object Family {
+  implicit class FamilyToJson(f: Family) extends JsonConvertible {
+    override def toJson = JsonObject(
+      "surName" -> f.surName.toJson,
+      "mother" -> f.mother.toJson,
+      "father" -> f.father.toJson,
+      "children" -> f.children.map(_.toJson).toJson
+    )
+  }
 }
 ```
 

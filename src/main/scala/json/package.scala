@@ -17,7 +17,7 @@ package object json {
     override def toJson = JsonString(s)
   }
 
-  implicit class SeqToJson[A <: JsonConvertible](l: Seq[A]) extends JsonConvertible {
-    override def toJson = JsonArray(l.map(_.toJson): _*)
+  implicit class SeqToJson[A <: Json](l: Seq[A]) extends JsonConvertible {
+    override def toJson = JsonArray(l: _*)
   }
 }
