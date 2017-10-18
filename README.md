@@ -73,8 +73,6 @@ class JsonObject(pairs: (String, Json)*) extends Json {
   override def stringify = "{" + pairs.map(stringifyPair).mkString(", ") + "}"
 }
 ```
-<br/>
-<br/>
 
 ### Business Model
 
