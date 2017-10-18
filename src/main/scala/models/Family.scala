@@ -1,13 +1,13 @@
 package models
 
-import json.JsonConvertible
+import json._
 import json.models._
 
 case class Family(surName: String, mother: Person, father: Person, children: List[Person]) extends JsonConvertible {
   override def toJson = JsonObject(
-    "surName" -> JsonString(surName),
+    "surName" -> surName.toJson,
     "mother" -> mother.toJson,
     "father" -> father.toJson,
-    "children" -> JsonArray(children.map(_.toJson): _*)
+    "children" -> children.toJson
   )
 }

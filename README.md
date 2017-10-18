@@ -8,46 +8,63 @@ Slides are located [here](https://docs.google.com/presentation/d/13akNnJCuATS0mq
 The idea in this talk is to implement a JSON serializer library that we can use with the least amount of effort possible, and the least amount of bleed into our business design.
 <br/>
 <br/>
-We continue by separating our business model directly from the Json language. 
+We continue by trying to fix the lopsidedness of the usage of the library  
 
-## Example 2 - Separate the Business Model
+## Example 3 - Same interface for Primitives
 
-In the first example, we inherited directly from the Json class, however our business language isn't Json.
-What we really want is to convert all of our models to Json, then we can stringify them.
+In the second example we implemented a method to convert to Json instead of extending it.
+This time we want to treat primitives outside our model the same way (by calling `.toJson` on them). 
 
 ### Library Design
 
-We now seal our abstract class, so no one else can inherit from it.
+Inside our library we now add some [Extension Methods](https://sachabarbs.wordpress.com/2015/10/23/scala-extension-methods/) for the primatives we are using.
+
+**Boolean**
 ```scala
-sealed abstract class Json {
-  def stringify: String
+implicit class BooleanToJson(b: Boolean) extends JsonConvertable {
+  override def toJson = JsonBoolean(b)
 }
 ```
 
-We now introduce a way to convert to Json.
+**Number**
 ```scala
-trait JsonConvertible {
-  def toJson: Json
+implicit class IntToJson(i: Int) extends JsonConvertable {
+  override def toJson = JsonNumber(i)
+}
+
+implicit class DoubleToJson(d: Double) extends JsonConvertable {
+  override def toJson = JsonNumber(d)
 }
 ```
 
+**String**
+```scala
+implicit class StringToJson(s: String) extends JsonConvertable {
+  override def toJson = JsonString(s)
+}
+```
+
+**Array**
+```scala
+implicit class SeqToJson[A <: JsonConvertable](l: Seq[A]) extends JsonConvertable {
+  override def toJson = JsonArray(l.map(_.toJson): _*)
+}
+```
 ### Business Model
-
-Instead of extending from Json we inherit from JsonConvertible
 
 **Person**
 ```scala
-case class Person(name: String, age: Int, alive: Boolean, nickName: Option[String]) extends JsonConvertable {
+case class Person(name: String, age: Int, alive: Boolean, nickName: Option[String]) extends JsonConvertible {
   override def toJson =
     if (nickName.isEmpty) JsonObject(
-      "name" -> JsonString(name),
-      "age" -> JsonNumber(age),
-      "alive" -> JsonBoolean(alive)
+      "name" -> name.toJson,
+      "age" -> age.toJson,
+      "alive" -> alive.toJson
     ) else JsonObject(
-      "name" -> JsonString(name),
-      "age" -> JsonNumber(age),
-      "alive" -> JsonBoolean(alive),
-      "nickname" -> JsonString(nickName.get)
+      "name" -> name.toJson,
+      "age" -> age.toJson,
+      "alive" -> alive.toJson,
+      "nickname" -> nickName.get.toJson
     )
 }
 ```
@@ -56,19 +73,17 @@ case class Person(name: String, age: Int, alive: Boolean, nickName: Option[Strin
 ```scala
 case class Family(surName: String, mother: Person, father: Person, children: List[Person]) extends JsonConvertible {
   override def toJson = JsonObject(
-    "surName" -> JsonString(surName),
+    "surName" -> surName.toJson,
     "mother" -> mother.toJson,
     "father" -> father.toJson,
-    "children" -> JsonArray(children.map(_.toJson): _*)
+    "children" -> children.toJson
   )
 }
 ```
 
-* Note we have converted everything to case classes so we no longer need to say `new` 
-
 ### Usage
 
-We now have to call `.toJson` on our model and then `.stringify`
+No change to our usage
 
 ```scala
 val homer = Person(name = "Homer", age = 37, alive = true, nickName = Some("Mr. Sparkle"))
