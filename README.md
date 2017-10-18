@@ -19,7 +19,7 @@ Here we try to implement the same pattern on our model to separate the conversio
 
 Since we want to remove the inheritance of the JsonConvertible from our Models, we need to make one change in one of our implicit classes.
 The SeqToJson class requires that each element extends JsonConvertible, but now all we will be able to do is require that they are Json instead.
-This means we loose some power, but all we need to do is convert the elements first and then the list itself, so its not that big of a deal.
+This means we lose some power, but all we need to do is convert the elements first and then the list itself, so its not that big of a deal.
 
 ```scala
 implicit class SeqToJson[A <: Json](l: Seq[A]) extends JsonConvertible {
