@@ -1,12 +1,13 @@
 package models
 
-import json._
+import json.JsonConvertable
+import json.models._
 
-class Family(surName: String, mother: Person, father: Person, children: List[Person]) extends Json {
-  override def stringify = new JsonObject(
-    "surName" -> new JsonString(surName),
-    "mother" -> mother,
-    "father" -> father,
-    "children" -> new JsonArray(children: _*)
-  ).stringify
+case class Family(surName: String, mother: Person, father: Person, children: List[Person]) extends JsonConvertable {
+  override def toJson = JsonObject(
+    "surName" -> JsonString(surName),
+    "mother" -> mother.toJson,
+    "father" -> father.toJson,
+    "children" -> JsonArray(children.map(_.toJson): _*)
+  )
 }

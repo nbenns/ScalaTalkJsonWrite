@@ -1,17 +1,18 @@
 package models
 
-import json._
+import json.JsonConvertable
+import json.models._
 
-class Person(name: String, age: Int, alive: Boolean, nickName: Option[String]) extends Json {
-  override def stringify =
-    if (nickName.isEmpty) new JsonObject(
-      "name" -> new JsonString(name),
-      "age" -> new JsonNumber(age),
-      "alive" -> new JsonBoolean(alive)
-    ).stringify else new JsonObject(
-      "name" -> new JsonString(name),
-      "age" -> new JsonNumber(age),
-      "alive" -> new JsonBoolean(alive),
-      "nickname" -> new JsonString(nickName.get)
-    ).stringify
+case class Person(name: String, age: Int, alive: Boolean, nickName: Option[String]) extends JsonConvertable {
+  override def toJson =
+    if (nickName.isEmpty) JsonObject(
+      "name" -> JsonString(name),
+      "age" -> JsonNumber(age),
+      "alive" -> JsonBoolean(alive)
+    ) else JsonObject(
+      "name" -> JsonString(name),
+      "age" -> JsonNumber(age),
+      "alive" -> JsonBoolean(alive),
+      "nickname" -> JsonString(nickName.get)
+    )
 }
