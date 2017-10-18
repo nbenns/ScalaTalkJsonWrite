@@ -1,5 +1,5 @@
 package json
 
-trait Json {
+abstract class Json {
   def stringify: String
 }

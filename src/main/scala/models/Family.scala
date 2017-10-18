@@ -2,12 +2,7 @@ package models
 
 import json._
 
-class Family(
- surName: String,
- mother: Person,
- father: Person,
- children: List[Person]
-) extends Json {
+class Family(surName: String, mother: Person, father: Person, children: List[Person]) extends Json {
   override def stringify = new JsonObject(
     "surName" -> new JsonString(surName),
     "mother" -> mother,
