@@ -19,5 +19,9 @@ package object json {
     case None => JsonNull
   }
 
-  def toJson[A](a: A)(implicit converter: JsonConvertible[A]): Json = converter.toJson(a)
+  implicit class JsonConversion[A: JsonConvertible](a: A) {
+    def toJson: Json = implicitly[JsonConvertible[A]].toJson(a)
+  }
+
+  def toJson[A: JsonConvertible](a: A): Json = a.toJson
 }

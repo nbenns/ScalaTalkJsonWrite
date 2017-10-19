@@ -10,63 +10,28 @@ The idea in this talk is to implement a JSON serializer library that we can use 
 <br/>
 We take our new extension method pattern and use it for our model.  
 
-## Example 6 - Typeclasses vs. Extension Methods
+## Example 7 - One Extension Method for all TypeClass Instances
 
-Extension methods only got us so far.  A lot of the problem is that we can't specifically pull them in for each type, which locked us in with reflection.
-Here we take a step back and change our JsonConverter to take a type parameter and implement the [TypeClass Pattern](http://danielwestheide.com/blog/2013/02/06/the-neophytes-guide-to-scala-part-12-type-classes.html).
+For user-friendliness and flexibility of expression we introduce an extension method implementation again.  However this time we only need one.
 
 ### Library design
 
-Change our converter to a typeclass
+Add our extension method for all JsonConvertible types
 ```scala
-trait JsonConvertible[A] {
-  def toJson(a: A): Json
+implicit class JsonConversion[A: JsonConvertible](a: A) {
+  def toJson: Json = implicitly[JsonConvertible[A]].toJson(a)
 }
 ```
 
-Now change all our extension methods to typeclass instances
+Now we can simplify our function interface's signature
 
-**Boolean**
 ```scala
-implicit val BooleanToJson: JsonConvertible[Boolean] = b => JsonBoolean(b)
-``` 
-
-**Int**
-```scala
-implicit val IntToJson: JsonConvertible[Int] = i => JsonNumber(i)
-```
-
-**Double**
-```scala
-implicit val DoubleToJson: JsonConvertible[Double] = d => JsonNumber(d)
-```
-
-**String**
-```scala
-implicit val StringToJson: JsonConvertible[String] = s => JsonString(s)
-```
-
-**Array**
-```scala
-implicit def SeqToJson[A: JsonConvertible, S[B] <: Seq[B]]: JsonConvertible[S[A]] = l => JsonArray(l.map(toJson[A]): _*)
-```
-
-**Option**
-```scala
-implicit def OptionToJson[A: JsonConvertible]: JsonConvertible[Option[A]] = {
-  case Some(a) => toJson(a)
-  case None => JsonNull
-}
-```
-
-And add a function interface function for the conversion
-```scala
-def toJson[A](a: A)(implicit converter: JsonConvertible[A]): Json = converter.toJson(a)
+def toJson[A: JsonConvertible](a: A): Json = a.toJson
 ```
 
 ### Business Model
 
-We will need typeclass instances for each of our objects
+We can use `.toJson` if we like now instead of calling the interface function
 
 **Person**
 ```scala
@@ -74,10 +39,10 @@ case class Person(name: String, age: Int, alive: Boolean, nickName: Option[Strin
 
 object Person {
   implicit val PersonToJson: JsonConvertible[Person] = p => JsonObject(
-    "name" -> toJson(p.name),
-    "age" -> toJson(p.age),
-    "alive" -> toJson(p.alive),
-    "nickName" -> toJson(p.nickName)
+    "name" -> p.name.toJson,
+    "age" -> p.age.toJson,
+    "alive" -> p.alive.toJson,
+    "nickName" -> p.nickName.toJson
   )
 }
 ```
@@ -88,17 +53,17 @@ case class Family(surName: String, mother: Person, father: Person, children: Lis
 
 object Family {
   implicit val FamilyToJson: JsonConvertible[Family] = f => JsonObject(
-    "surName" -> toJson(f.surName),
-    "mother" -> toJson(f.mother),
-    "father" -> toJson(f.father),
-    "children" -> toJson(f.children)
+    "surName" -> f.surName.toJson,
+    "mother" -> f.mother.toJson,
+    "father" -> f.father.toJson,
+    "children" -> f.children.toJson
   )
 }
 ```
 
 ### Usage
 
-We just need to use our function as we don't have a method on our models anymore
+We can go back to calling `.toJson` again.
 
 ```scala
 val homer = Person(name = "Homer", age = 37, alive = true, nickName = Some("Mr. Sparkle"))
@@ -114,7 +79,7 @@ val simpsons = Family(
   children = List(bart, lisa, maggie)
 )
 
-println(toJson(simpsons).stringify)
+println(simpsons.toJson.stringify)
 ```
 
 **Output**

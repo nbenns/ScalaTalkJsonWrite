@@ -7,9 +7,9 @@ case class Family(surName: String, mother: Person, father: Person, children: Lis
 
 object Family {
   implicit val FamilyToJson: JsonConvertible[Family] = f => JsonObject(
-    "surName" -> toJson(f.surName),
-    "mother" -> toJson(f.mother),
-    "father" -> toJson(f.father),
-    "children" -> toJson(f.children)
+    "surName" -> f.surName.toJson,
+    "mother" -> f.mother.toJson,
+    "father" -> f.father.toJson,
+    "children" -> f.children.toJson
   )
 }

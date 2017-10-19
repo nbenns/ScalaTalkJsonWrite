@@ -1,5 +1,5 @@
 import models._
-import json.toJson
+import json._
 
 object Main extends App {
   val homer = Person(name = "Homer", age = 37, alive = true, nickName = Some("Mr. Sparkle"))
@@ -15,5 +15,5 @@ object Main extends App {
     children = List(bart, lisa, maggie)
   )
 
-  println(toJson(simpsons).stringify)
+  println(simpsons.toJson.stringify)
 }
