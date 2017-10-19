@@ -10,73 +10,95 @@ The idea in this talk is to implement a JSON serializer library that we can use 
 <br/>
 We take our new extension method pattern and use it for our model.  
 
-## Example 5 - Get rid of JsonObject and any reference of Json within our models
+## Example 6 - Typeclasses vs. Extension Methods
 
-Now we have abstracted over every type we are using in our models, but can we abstract over the models themselves?
+Extension methods only got us so far.  A lot of the problem is that we can't specifically pull them in for each type, which locked us in with reflection.
+Here we take a step back and change our JsonConverter to take a type parameter and implement the [TypeClass Pattern](http://danielwestheide.com/blog/2013/02/06/the-neophytes-guide-to-scala-part-12-type-classes.html).
 
 ### Library design
 
-We can't do this alone, we need to pull something in to be able to get this kind of power.
-The only hope we have is in `Reflection`, which will let us inspect our `Product` types at runtime and iterate over their methods
-
-Add the reflection library
-```sbtshell
-libraryDependencies ++= Seq(
-  "org.scala-lang" % "scala-reflect" % scalaVersion.value
-)
+Change our converter to a typeclass
+```scala
+trait JsonConvertible[A] {
+  def toJson(a: A): Json
+}
 ```
 
-Now use some reflection to implement the ultimate extension method
+Now change all our extension methods to typeclass instances
 
+**Boolean**
 ```scala
-implicit class ProductToJson(o: Product) extends JsonConvertible {
-  private def cast[T](a: Any, tt: TypeTag[T]): T = a.asInstanceOf[T]
-
-  private def convert[T: TypeTag](a: Any): Json = a match {
-    case value: Boolean => value.toJson
-    case value: Int => value.toJson
-    case value: Double => value.toJson
-    case value: String => value.toJson
-    case value: Seq[Any] => value.map(convert).toJson
-    case value: Option[Any] => value.map(convert).toJson
-    case value if typeOf[T] <:< typeOf[Product] =>
-      val prod: Product = cast(value, implicitly[TypeTag[Product]])
-      ProductToJson(prod).toJson
-    case _ => throw new Exception("type not supported")
-  }
-
-  private def toMethods[T: TypeTag](c: Product): Seq[(String, Json)] = {
-    val keys = c.getClass.getDeclaredFields.map(_.getName)
-    val z = (keys zip c.productIterator.toList) map {
-      case (key, value) => (key, convert(value))
-    }
-
-    z
-  }
-
-  val methods = toMethods(o)
-
-  override def toJson = JsonObject(methods: _*)
-}
+implicit val BooleanToJson: JsonConvertible[Boolean] = b => JsonBoolean(b)
 ``` 
+
+**Int**
+```scala
+implicit val IntToJson: JsonConvertible[Int] = i => JsonNumber(i)
+```
+
+**Double**
+```scala
+implicit val DoubleToJson: JsonConvertible[Double] = d => JsonNumber(d)
+```
+
+**String**
+```scala
+implicit val StringToJson: JsonConvertible[String] = s => JsonString(s)
+```
+
+**Array**
+```scala
+implicit def SeqToJson[A: JsonConvertible, S[B] <: Seq[B]]: JsonConvertible[S[A]] = l => JsonArray(l.map(toJson[A]): _*)
+```
+
+**Option**
+```scala
+implicit def OptionToJson[A: JsonConvertible]: JsonConvertible[Option[A]] = {
+  case Some(a) => toJson(a)
+  case None => JsonNull
+}
+```
+
+And add a function interface function for the conversion
+```scala
+def toJson[A](a: A)(implicit converter: JsonConvertible[A]): Json = converter.toJson(a)
+```
 
 ### Business Model
 
-We can remove everything but our case classes!
+We will need typeclass instances for each of our objects
 
 **Person**
 ```scala
 case class Person(name: String, age: Int, alive: Boolean, nickName: Option[String])
+
+object Person {
+  implicit val PersonToJson: JsonConvertible[Person] = p => JsonObject(
+    "name" -> toJson(p.name),
+    "age" -> toJson(p.age),
+    "alive" -> toJson(p.alive),
+    "nickName" -> toJson(p.nickName)
+  )
+}
 ```
 
 **Family**
 ```scala
 case class Family(surName: String, mother: Person, father: Person, children: List[Person])
+
+object Family {
+  implicit val FamilyToJson: JsonConvertible[Family] = f => JsonObject(
+    "surName" -> toJson(f.surName),
+    "mother" -> toJson(f.mother),
+    "father" -> toJson(f.father),
+    "children" -> toJson(f.children)
+  )
+}
 ```
 
 ### Usage
 
-No change to our usage
+We just need to use our function as we don't have a method on our models anymore
 
 ```scala
 val homer = Person(name = "Homer", age = 37, alive = true, nickName = Some("Mr. Sparkle"))
@@ -92,7 +114,7 @@ val simpsons = Family(
   children = List(bart, lisa, maggie)
 )
 
-println(simpsons.toJson.stringify)
+println(toJson(simpsons).stringify)
 ```
 
 **Output**
