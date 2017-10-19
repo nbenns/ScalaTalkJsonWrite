@@ -10,85 +10,69 @@ The idea in this talk is to implement a JSON serializer library that we can use 
 <br/>
 We take our new extension method pattern and use it for our model.  
 
-## Example 4 - Switch our Model to Extension Methods
+## Example 5 - Get rid of JsonObject and any reference of Json within our models
 
-In the 3rd example, we used extension methods on primitives to give them a `.toJson` method.
-Here we try to implement the same pattern on our model to separate the conversion from our business logic.
+Now we have abstracted over every type we are using in our models, but can we abstract over the models themselves?
 
 ### Library design
 
-Since we want to remove the inheritance of the JsonConvertible from our Models, we need to make one change in one of our implicit classes.
-The SeqToJson class requires that each element extends JsonConvertible, but now all we will be able to do is require that they are Json instead.
-This means we lose some power, but all we need to do is convert the elements first and then the list itself, so its not that big of a deal.
+We can't do this alone, we need to pull something in to be able to get this kind of power.
+The only hope we have is in `Reflection`, which will let us inspect our `Product` types at runtime and iterate over their methods
+
+Add the reflection library
+```sbtshell
+libraryDependencies ++= Seq(
+  "org.scala-lang" % "scala-reflect" % scalaVersion.value
+)
+```
+
+Now use some reflection to implement the ultimate extension method
 
 ```scala
-implicit class SeqToJson[A <: Json](l: Seq[A]) extends JsonConvertible {
-  override def toJson = JsonArray(l: _*)
+implicit class ProductToJson(o: Product) extends JsonConvertible {
+  private def cast[T](a: Any, tt: TypeTag[T]): T = a.asInstanceOf[T]
+
+  private def convert[T: TypeTag](a: Any): Json = a match {
+    case value: Boolean => value.toJson
+    case value: Int => value.toJson
+    case value: Double => value.toJson
+    case value: String => value.toJson
+    case value: Seq[Any] => value.map(convert).toJson
+    case value: Option[Any] => value.map(convert).toJson
+    case value if typeOf[T] <:< typeOf[Product] =>
+      val prod: Product = cast(value, implicitly[TypeTag[Product]])
+      ProductToJson(prod).toJson
+    case _ => throw new Exception("type not supported")
+  }
+
+  private def toMethods[T: TypeTag](c: Product): Seq[(String, Json)] = {
+    val keys = c.getClass.getDeclaredFields.map(_.getName)
+    val z = (keys zip c.productIterator.toList) map {
+      case (key, value) => (key, convert(value))
+    }
+
+    z
+  }
+
+  val methods = toMethods(o)
+
+  override def toJson = JsonObject(methods: _*)
 }
 ``` 
 
-However, we can also do the same thing for Option.
-One caveat though, we need to add a new element to our Json language.  JsonNull.
-
-Here is our new type
-```scala
-case object JsonNull extends Json {
-  override def stringify = "null"
-}
-type JsonNull = JsonNull.type
-```
-We add this as a case object so that we preserve some memory, but since this doesn't have an explicit type, we add an alias.
-
-Now here is our Option implementation
-```scala
-implicit class OptionToJson[A <: Json](opt: Option[A]) extends JsonConvertible {
-  override def toJson = opt match {
-    case Some(a) => a
-    case None => JsonNull
-  }
-}
-```
-
 ### Business Model
 
-Extension methods for our types
+We can remove everything but our case classes!
 
 **Person**
 ```scala
 case class Person(name: String, age: Int, alive: Boolean, nickName: Option[String])
-
-object Person {
-  implicit class PersonToJson(p: Person) extends JsonConvertible {
-    override def toJson = JsonObject(
-      "name" -> p.name.toJson,
-      "age" -> p.age.toJson,
-      "alive" -> p.alive.toJson,
-      "nickname" -> p.nickName.map(_.toJson).toJson
-    )
-  }
-}
 ```
-
-We are able to implement the extension method for Person, and putting it inside the companion object saves us an import as it will be found on implicit search.
-With our option implementation, we can get rid of the pesky if statement that has been plaguing us since the beginning.
 
 **Family**
 ```scala
 case class Family(surName: String, mother: Person, father: Person, children: List[Person])
-
-object Family {
-  implicit class FamilyToJson(f: Family) extends JsonConvertible {
-    override def toJson = JsonObject(
-      "surName" -> f.surName.toJson,
-      "mother" -> f.mother.toJson,
-      "father" -> f.father.toJson,
-      "children" -> f.children.map(_.toJson).toJson
-    )
-  }
-}
 ```
-
-Again we now need to convert the each child element before the list, a little annoying, but not that bad.
 
 ### Usage
 
@@ -112,8 +96,6 @@ println(simpsons.toJson.stringify)
 ```
 
 **Output**
-
-Our output changes a little, because JsonNull is now the None value for Option, we get nulls in our output.
 
 ```json
 {"surName": "Simpson", "mother": {"name": "Marge", "age": 34, "alive": true, "nickname": null}, "father": {"name": "Homer", "age": 37, "alive": true, "nickname": "Mr. Sparkle"}, "children": [{"name": "Bart", "age": 10, "alive": true, "nickname": "El Barto"}, {"name": "Lisa", "age": 8, "alive": true, "nickname": null}, {"name": "Maggie", "age": 1, "alive": true, "nickname": null}]}

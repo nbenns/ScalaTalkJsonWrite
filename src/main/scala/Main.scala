@@ -1,4 +1,5 @@
 import models._
+import json._
 
 object Main extends App {
   val homer = Person(name = "Homer", age = 37, alive = true, nickName = Some("Mr. Sparkle"))

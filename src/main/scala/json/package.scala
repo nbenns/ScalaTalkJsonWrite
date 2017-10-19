@@ -1,4 +1,5 @@
 import json.models._
+import scala.reflect.runtime.universe._
 
 package object json {
   implicit class BooleanToJson(b: Boolean) extends JsonConvertible {
@@ -26,5 +27,35 @@ package object json {
       case Some(a) => a
       case None => JsonNull
     }
+  }
+
+  implicit class ProductToJson(o: Product) extends JsonConvertible {
+    private def cast[T](a: Any, tt: TypeTag[T]): T = a.asInstanceOf[T]
+
+    private def convert[T: TypeTag](a: Any): Json = a match {
+      case value: Boolean => value.toJson
+      case value: Int => value.toJson
+      case value: Double => value.toJson
+      case value: String => value.toJson
+      case value: Seq[Any] => value.map(convert).toJson
+      case value: Option[Any] => value.map(convert).toJson
+      case value if typeOf[T] <:< typeOf[Product] =>
+        val prod: Product = cast(value, implicitly[TypeTag[Product]])
+        ProductToJson(prod).toJson
+      case _ => throw new Exception("type not supported")
+    }
+
+    private def toMethods[T: TypeTag](c: Product): Seq[(String, Json)] = {
+      val keys = c.getClass.getDeclaredFields.map(_.getName)
+      val z = (keys zip c.productIterator.toList) map {
+        case (key, value) => (key, convert(value))
+      }
+
+      z
+    }
+
+    val methods = toMethods(o)
+
+    override def toJson = JsonObject(methods: _*)
   }
 }
