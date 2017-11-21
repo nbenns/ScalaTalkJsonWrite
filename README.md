@@ -100,12 +100,18 @@ To do this we extend our models from JSON and implement the `stringify` method.
 
 **Person**
 ```scala
-class Person(name: String, age: Int, alive: Boolean) extends Json {
-  override def stringify = new JsonObject(
-    "name" -> new JsonString(name),
-    "age" -> new JsonNumber(age),
-    "alive" -> new JsonBoolean(alive)
-  ).stringify
+class Person(name: String, age: Int, alive: Boolean, nickName: Option[String]) extends Json {
+  override def stringify =
+    if (nickName.isEmpty) new JsonObject(
+      "name" -> new JsonString(name),
+      "age" -> new JsonNumber(age),
+      "alive" -> new JsonBoolean(alive)
+    ).stringify else new JsonObject(
+      "name" -> new JsonString(name),
+      "age" -> new JsonNumber(age),
+      "alive" -> new JsonBoolean(alive),
+      "nickname" -> new JsonString(nickName.get)
+    ).stringify
 }
 ```
 
@@ -123,11 +129,11 @@ class Family(surName: String, mother: Person, father: Person, children: List[Per
 
 Now let's put it all together.
 ```scala
-val homer = new Person(name = "Homer", age = 37, alive = true)
-val marge = new Person(name = "Marge", age = 34, alive = true)
-val bart = new Person(name = "Bart", age = 10, alive = true)
-val lisa = new Person(name = "Lisa", age = 8, alive = true)
-val maggie = new Person(name = "Maggie", age = 1, alive = true)
+val homer = new Person(name = "Homer", age = 37, alive = true, nickName = Some("Mr. Sparkle"))
+val marge = new Person(name = "Marge", age = 34, alive = true, nickName = None)
+val bart = new Person(name = "Bart", age = 10, alive = true, nickName = Some("El Barto"))
+val lisa = new Person(name = "Lisa", age = 8, alive = true, nickName = None)
+val maggie = new Person(name = "Maggie", age = 1, alive = true, nickName = None)
 
 val simpsons = new Family(
   surName = "Simpson",
@@ -141,5 +147,5 @@ println(simpsons.stringify)
 
 **Output**
 ```json
-{"surName": "Simpson", "mother": {"name": "Marge", "age": 34, "alive": true}, "father": {"name": "Homer", "age": 37, "alive": true}, "children": [{"name": "Bart", "age": 10, "alive": true}, {"name": "Lisa", "age": 8, "alive": true}, {"name": "Maggie", "age": 1, "alive": true}]}
+{"surName": "Simpson", "mother": {"name": "Marge", "age": 34, "alive": true}, "father": {"name": "Homer", "age": 37, "alive": true, "nickname": "Mr. Sparkle"}, "children": [{"name": "Bart", "age": 10, "alive": true, "nickname": "El Barto"}, {"name": "Lisa", "age": 8, "alive": true}, {"name": "Maggie", "age": 1, "alive": true}]}
 ```
