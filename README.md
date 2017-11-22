@@ -10,7 +10,7 @@ The idea in this talk is to implement a JSON serializer library that we can use 
 
 Here we finally get rid of the ugly typecast to JsonObject in our HCons implementation.
 
-## Example 9 - The Aux Pattern
+## Example 10 - The Aux Pattern
 
 Now that we are keeping track of our return type, why is the cast still required in HCons' implementation?
 The problem is now that type return type is dependent on tailConv.Enc.  What we need to be able to do, is to restrict tailConv.Enc to JsonObject.
