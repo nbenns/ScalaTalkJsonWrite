@@ -17,8 +17,10 @@ object Main extends App {
     children = List(bart, lisa, maggie)
   )
 
-  val testJson: String :: Int :: Boolean :: Option[String] :: HNil =
+  val test: String :: Int :: Boolean :: Option[String] :: HNil =
     "Homer" :: 37 :: true :: Some("Mr. Sparkle") :: HNil
 
-  println(testJson.toJson.stringify)
+  val testJson: JsonObject = test.toJson
+
+  println(testJson.stringify)
 }
