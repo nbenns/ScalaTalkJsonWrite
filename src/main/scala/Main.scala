@@ -1,5 +1,6 @@
 import models._
 import json._
+import shapeless._
 
 object Main extends App {
   val homer = Person(name = "Homer", age = 37, alive = true, nickName = Some("Mr. Sparkle"))
@@ -15,5 +16,8 @@ object Main extends App {
     children = List(bart, lisa, maggie)
   )
 
-  println(simpsons.toJson.stringify)
+  val testJson: String :: Int :: Boolean :: Option[String] :: HNil =
+    "Homer" :: 37 :: true :: Some("Mr. Sparkle") :: HNil
+
+  println(testJson.toJson.stringify)
 }

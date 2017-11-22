@@ -37,5 +37,10 @@ package object models {
     }).tupled
 
     override def stringify = "{" + pairs.map(stringifyPair).mkString(", ") + "}"
+
+    def +(pair: (String, Json)): JsonObject = {
+      val nPairs: List[(String, Json)] = pair :: pairs.toList
+      JsonObject(nPairs: _*)
+    }
   }
 }
