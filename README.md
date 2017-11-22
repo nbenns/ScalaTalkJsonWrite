@@ -10,7 +10,7 @@ The idea in this talk is to implement a JSON serializer library that we can use 
 
 Time to fill in the names of our JsonObject's keys.
 
-## Example 9 - Type Annotation
+## Example 11 - Type Annotation
 
 Maybe you have been wondering through the last few examples where our Keys were going to come from in our object?
 It might have made more intuitive sense to use something like a Map instead of HList, but Map wouldn't have solved our problem.
