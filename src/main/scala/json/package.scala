@@ -1,5 +1,6 @@
 import json.models._
 import shapeless._
+import shapeless.labelled.FieldType
 
 import scala.language.higherKinds
 
@@ -42,17 +43,18 @@ package object json {
     override def toJson(a: HNil) = JsonObject()
   }
 
-  implicit def HConsToJson[H, T <: HList]
+  implicit def HConsToJson[K <: Symbol, H, T <: HList]
   (implicit
     headConv: JsonConvertible[H],
-    tailConv: JsonConvertible.Aux[T, JsonObject]
-  ) = new JsonConvertible[H :: T] {
+    tailConv: JsonConvertible.Aux[T, JsonObject],
+    key: Witness.Aux[K]
+  ) = new JsonConvertible[FieldType[K, H] :: T] {
     override type Enc = JsonObject
-    override def toJson(a: ::[H, T]) = {
+    override def toJson(a: FieldType[K, H] :: T) = {
       val headJson = headConv.toJson(a.head)
       val tailJson = tailConv.toJson(a.tail)
 
-      tailJson + ("key" -> headJson)
+      tailJson + (key.value.name -> headJson)
     }
   }
 

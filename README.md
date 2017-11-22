@@ -8,97 +8,85 @@ Slides are located [here](https://docs.google.com/presentation/d/13akNnJCuATS0mq
 The idea in this talk is to implement a JSON serializer library that we can use with the least amount of effort possible, and the least amount of bleed into our business design.
 <br/>  
 
-Here we finally get rid of the ugly typecast to JsonObject in our HCons implementation.
+Time to fill in the names of our JsonObject's keys.
 
-## Example 9 - The Aux Pattern
+## Example 9 - Type Annotation
 
-Now that we are keeping track of our return type, why is the cast still required in HCons' implementation?
-The problem is now that type return type is dependent on tailConv.Enc.  What we need to be able to do, is to restrict tailConv.Enc to JsonObject.
+Maybe you have been wondering through the last few examples where our Keys were going to come from in our object?
+It might have made more intuitive sense to use something like a Map instead of HList, but Map wouldn't have solved our problem.
+It has the same restrictions as List where the values must all be of the same type.
 
-That's what we are going to do now.  And to do this we will need something called the [Aux Pattern](http://gigiigig.github.io/posts/2015/09/13/aux-pattern.html)
+Maybe you think we should have created an HMap instead of an HList, and such a thing exists, but to solve a host of different problems.
+
+Really the list is the simplest thing to iterate over each of our types, but again, where does the key names come from?
+
+What we are going to do next is strange.  It doesn't make any intuitive sense, but hopefully it won't scare you off.
+We are getting down into the dark holes of shapeless, really because I want to show you how it works, but also because we need our HList's typeclass instances to handle this.
+
+Its actually really not that complicated, but it looks cryptic and scary.
+Anyway, here we go... 
 
 ### Library design
 
-We add a companion object to our JsonConvertible trait and in there put a type called Aux.
+Our solution to this problem is to annotate the types of each of the fields with the Name of the field.
+This might seem weird, and it is, but take a look at this first so you understand what I mean.
 ```scala
-trait JsonConvertible[A] {
-  type Enc <: Json
-  def toJson(a: A): Enc
-}
-
-object JsonConvertible {
-  type Aux[In, Out] = JsonConvertible[In] { type Enc = Out }
-}
+type Name = Witness.`'name`.T
+val nameOfHomer: FieldType[Name, String] = field[Name]("Homer")
+val nameWitness = implicitly[Witness.Aux[Name]]
+println(nameWitness.value.name) // prints "name"
 ```
 
-What this allows us to do is specify another Type Parameter to our methods that can restrict the Enc type on our typeclass.
-Here is the new HList implementation:
+This looks like magic, and it is magic, magic made by Macros the Scala compiler is running to generate these weird types.
+I'm not going to get into how these macros work, that's beyond the scope of this tutorial.
+
+What I will say is this, we can use Shapless' Witness type to create a type from a symbol.
+Then we can annotate a type like String with our new type by using the FieldType type constructor.
+
+Those 4 lines open up a huge can of worms, and are probably the most confusing part of this whole tutorial, so its definitely worth the extra reading before you go on.
+However they will be gone in the next example, we are only interested in simulating LabelledGeneric, so we are putting them in to make it work and then build upon.
+
+Let's add all of our types for Person and create our HList for homer again.
 
 ```scala
-implicit def HConsToJson[H, T <: HList]
+type Name = Witness.`'name`.T
+type Age = Witness.`'age`.T
+type Alive = Witness.`'alive`.T
+type NickName = Witness.`'nickName`.T
+
+val test: FieldType[Name, String] :: FieldType[Age, Int] :: FieldType[Alive, Boolean] :: FieldType[NickName, Option[String]] :: HNil =
+  field[Name]("Homer") :: field[Age](37) :: field[Alive](true) :: field[NickName](Some("Mr. Sparkle")) :: HNil
+```
+
+Now we need to implement this FieldType on our HCons implementation
+
+```scala
+implicit def HConsToJson[K <: Symbol, H, T <: HList]
 (implicit
   headConv: JsonConvertible[H],
-  tailConv: JsonConvertible.Aux[T, JsonObject]
-) = new JsonConvertible[H :: T] {
+  tailConv: JsonConvertible.Aux[T, JsonObject],
+  key: Witness.Aux[K]
+) = new JsonConvertible[FieldType[K, H] :: T] {
   override type Enc = JsonObject
-  override def toJson(a: ::[H, T]) = {
+  override def toJson(a: FieldType[K, H] :: T) = {
     val headJson = headConv.toJson(a.head)
     val tailJson = tailConv.toJson(a.tail)
 
-    tailJson + ("key" -> headJson)
+    tailJson + (key.value.name -> headJson)
   }
 }
 ```
+We add a type parameter S which is a Symbol represent the type annotation.
+We then add key which pulls in the Witness for that key and will allow us to get the String name of the type.
 
-Now the cast is completely gone!
-We've restricted the tailConv instance to specifically return a JsonObject, so now tailConv.Enc is guarenteed to be JsonObject and we no longer have to cast.
-
-We can also fix something nasty hiding in our extension methods as well.
-There was no way to cast it as a specific Json type either, the only guarantee was again conv.Enc.
-Now we can use Aux on our implicit class to fix that as well.
-
-Just so you are confident what I'm talking about, let's modify our Main for a second and try a 2 step conversion.
-
+We can then use it like normal
 ```scala
-val test: String :: Int :: Boolean :: Option[String] :: HNil =
-    "Homer" :: 37 :: true :: Some("Mr. Sparkle") :: HNil
-
-val testJson: JsonObject = toJson(test)
-
-println(testJson.stringify)
-``` 
-
-This compiles no problem, and works as expected.
-However if we try using `.toJson` instead
-```scala
-val test: String :: Int :: Boolean :: Option[String] :: HNil =
-    "Homer" :: 37 :: true :: Some("Mr. Sparkle") :: HNil
-
 val testJson: JsonObject = test.toJson
 
 println(testJson.stringify)
 ```
 
-We get a compilation failure
-```sbtshell
-[error] C:\ScalaTalkJsonWrite\src\main\scala\Main.scala:23: type mismatch;
-[error]  found   : _1.conv.Enc where val _1: json.JsonConversion[String :: Int :: Boolean :: Option[String] :: shapeless.HNil]
-[error]  required: json.models.JsonObject
-[error]   val testJson: JsonObject = test.toJson
-[error]                                   ^
-[error] one error found
-[error] (compile:compileIncremental) Compilation failed
-[error] Total time: 2 s, completed Nov 22, 2017 12:09:55 PM
-```
-
-Using the Aux pattern on our implicit class will fix this as well.
-```scala
-implicit class JsonConversion[A, B <: Json](a: A)(implicit conv: JsonConvertible.Aux[A, B]) {
-  def toJson: B = conv.toJson(a)
-}
-```
-
-Now we can compile just fine.
+* Note: because there is a lot of macro magic going on here, IntelliJ or Eclipse might have problems following.  The code will compile however, even if the IDE doesn't think so.
 
 ### Business Model
 
@@ -108,8 +96,13 @@ No changes
 
 We are ignoring our actual business usage for now and focusing on just the HList.  We implement just the Generic version of Person to give it a try.
 ```scala
-val test: String :: Int :: Boolean :: Option[String] :: HNil =
-    "Homer" :: 37 :: true :: Some("Mr. Sparkle") :: HNil
+type Name = Witness.`'name`.T
+type Age = Witness.`'age`.T
+type Alive = Witness.`'alive`.T
+type NickName = Witness.`'nickName`.T
+
+val test: FieldType[Name, String] :: FieldType[Age, Int] :: FieldType[Alive, Boolean] :: FieldType[NickName, Option[String]] :: HNil =
+  field[Name]("Homer") :: field[Age](37) :: field[Alive](true) :: field[NickName](Some("Mr. Sparkle")) :: HNil
 
 val testJson: JsonObject = test.toJson
 
@@ -119,5 +112,5 @@ println(testJson.stringify)
 **Output**
 
 ```json
-{"key": "Homer", "key": 37, "key": true, "key": "Mr. Sparkle"}
+{"name": "Homer", "age": 37, "alive": true, "nickName": "Mr. Sparkle"}
 ```
