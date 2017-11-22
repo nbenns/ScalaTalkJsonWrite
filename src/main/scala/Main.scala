@@ -1,11 +1,5 @@
 import models._
 import json._
-import json.models._
-import shapeless._
-import shapeless.labelled._
-import shapeless.syntax.singleton._
-import shapeless.labelled.{FieldType, KeyTag}
-import shapeless.syntax.SingletonOps
 
 object Main extends App {
   val homer = Person(name = "Homer", age = 37, alive = true, nickName = Some("Mr. Sparkle"))
@@ -21,15 +15,5 @@ object Main extends App {
     children = List(bart, lisa, maggie)
   )
 
-  type Name = Witness.`'name`.T
-  type Age = Witness.`'age`.T
-  type Alive = Witness.`'alive`.T
-  type NickName = Witness.`'nickName`.T
-
-  val test: FieldType[Name, String] :: FieldType[Age, Int] :: FieldType[Alive, Boolean] :: FieldType[NickName, Option[String]] :: HNil =
-    field[Name]("Homer") :: field[Age](37) :: field[Alive](true) :: field[NickName](Some("Mr. Sparkle")) :: HNil
-
-  val testJson: JsonObject = test.toJson
-
-  println(testJson.stringify)
+  println(homer.toJson.stringify)
 }

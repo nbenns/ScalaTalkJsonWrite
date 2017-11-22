@@ -58,6 +58,15 @@ package object json {
     }
   }
 
+  implicit def GenericToJson[A, R]
+  (implicit
+    gen: LabelledGeneric.Aux[A, R],
+    conv: JsonConvertible.Aux[R, JsonObject]
+  ) = new JsonConvertible[A] {
+    override type Enc = JsonObject
+    override def toJson(a: A) = conv.toJson(gen.to(a))
+  }
+
   implicit class JsonConversion[A, B <: Json](a: A)(implicit conv: JsonConvertible.Aux[A, B]) {
     def toJson: B = conv.toJson(a)
   }
