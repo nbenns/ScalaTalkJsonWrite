@@ -85,7 +85,7 @@ Each family member is represented as a Person, and a Person has a Name, an Age a
 
 **Person**
 ```scala
-class Person(name: String, age: Int, alive: Boolean)
+class Person(name: String, age: Int, alive: Boolean, nickName: Option[String])
 ```
 
 **Family**
