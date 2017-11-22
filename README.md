@@ -27,6 +27,28 @@ implicit class SeqToJson[A <: Json](l: Seq[A]) extends JsonConvertible {
 }
 ``` 
 
+However, we can also do the same thing for Option.
+One caveat though, we need to add a new element to our Json language.  JsonNull.
+
+Here is our new type
+```scala
+case object JsonNull extends Json {
+  override def stringify = "null"
+}
+type JsonNull = JsonNull.type
+```
+We add this as a case object so that we preserve some memory, but since this doesn't have an explicit type, we add an alias.
+
+Now here is our Option implementation
+```scala
+implicit class OptionToJson[A <: Json](opt: Option[A]) extends JsonConvertible {
+  override def toJson = opt match {
+    case Some(a) => a
+    case None => JsonNull
+  }
+}
+```
+
 ### Business Model
 
 Extension methods for our types
@@ -37,22 +59,18 @@ case class Person(name: String, age: Int, alive: Boolean, nickName: Option[Strin
 
 object Person {
   implicit class PersonToJson(p: Person) extends JsonConvertible {
-    override def toJson =
-      if (p.nickName.isEmpty) JsonObject(
-        "name" -> p.name.toJson,
-        "age" -> p.age.toJson,
-        "alive" -> p.alive.toJson
-      ) else JsonObject(
-        "name" -> p.name.toJson,
-        "age" -> p.age.toJson,
-        "alive" -> p.alive.toJson,
-        "nickname" -> p.nickName.get.toJson
-      )
+    override def toJson = JsonObject(
+      "name" -> p.name.toJson,
+      "age" -> p.age.toJson,
+      "alive" -> p.alive.toJson,
+      "nickname" -> p.nickName.map(_.toJson).toJson
+    )
   }
 }
 ```
 
 We are able to implement the extension method for Person, and putting it inside the companion object saves us an import as it will be found on implicit search.
+With our option implementation, we can get rid of the pesky if statement that has been plaguing us since the beginning.
 
 **Family**
 ```scala
@@ -94,6 +112,9 @@ println(simpsons.toJson.stringify)
 ```
 
 **Output**
+
+Our output changes a little, because JsonNull is now the None value for Option, we get nulls in our output.
+
 ```json
-{"surName": "Simpson", "mother": {"name": "Marge", "age": 34, "alive": true}, "father": {"name": "Homer", "age": 37, "alive": true, "nickname": "Mr. Sparkle"}, "children": [{"name": "Bart", "age": 10, "alive": true, "nickname": "El Barto"}, {"name": "Lisa", "age": 8, "alive": true}, {"name": "Maggie", "age": 1, "alive": true}]}
+{"surName": "Simpson", "mother": {"name": "Marge", "age": 34, "alive": true, "nickname": null}, "father": {"name": "Homer", "age": 37, "alive": true, "nickname": "Mr. Sparkle"}, "children": [{"name": "Bart", "age": 10, "alive": true, "nickname": "El Barto"}, {"name": "Lisa", "age": 8, "alive": true, "nickname": null}, {"name": "Maggie", "age": 1, "alive": true, "nickname": null}]}
 ```

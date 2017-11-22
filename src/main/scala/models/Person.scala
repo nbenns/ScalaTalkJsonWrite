@@ -7,16 +7,11 @@ case class Person(name: String, age: Int, alive: Boolean, nickName: Option[Strin
 
 object Person {
   implicit class PersonToJson(p: Person) extends JsonConvertible {
-    override def toJson =
-      if (p.nickName.isEmpty) JsonObject(
-        "name" -> p.name.toJson,
-        "age" -> p.age.toJson,
-        "alive" -> p.alive.toJson
-      ) else JsonObject(
-        "name" -> p.name.toJson,
-        "age" -> p.age.toJson,
-        "alive" -> p.alive.toJson,
-        "nickname" -> p.nickName.get.toJson
-      )
+    override def toJson = JsonObject(
+      "name" -> p.name.toJson,
+      "age" -> p.age.toJson,
+      "alive" -> p.alive.toJson,
+      "nickname" -> p.nickName.map(_.toJson).toJson
+    )
   }
 }

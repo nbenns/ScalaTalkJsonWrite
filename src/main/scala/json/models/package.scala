@@ -5,6 +5,11 @@ package object models {
     def stringify: String
   }
 
+  case object JsonNull extends Json {
+    override def stringify = "null"
+  }
+  type JsonNull = JsonNull.type
+
   case class JsonBoolean(b: Boolean) extends Json {
     override def stringify = b.toString
   }

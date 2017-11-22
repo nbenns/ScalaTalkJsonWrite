@@ -20,4 +20,11 @@ package object json {
   implicit class SeqToJson[A <: Json](l: Seq[A]) extends JsonConvertible {
     override def toJson = JsonArray(l: _*)
   }
+
+  implicit class OptionToJson[A <: Json](opt: Option[A]) extends JsonConvertible {
+    override def toJson = opt match {
+      case Some(a) => a
+      case None => JsonNull
+    }
+  }
 }
