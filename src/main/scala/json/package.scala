@@ -4,34 +4,61 @@ import shapeless._
 import scala.language.higherKinds
 
 package object json {
-  implicit val BooleanToJson: JsonConvertible[Boolean] = b => JsonBoolean(b)
-
-  implicit val IntToJson: JsonConvertible[Int] = i => JsonNumber(i)
-
-  implicit val DoubleToJson: JsonConvertible[Double] = d => JsonNumber(d)
-
-  implicit val StringToJson: JsonConvertible[String] = s => JsonString(s)
-
-  implicit def SeqToJson[A: JsonConvertible, S[B] <: Seq[B]]: JsonConvertible[S[A]] =
-    l => JsonArray(l.map(toJson[A]): _*)
-
-  implicit def OptionToJson[A: JsonConvertible]: JsonConvertible[Option[A]] = {
-    case Some(a) => toJson(a)
-    case None => JsonNull
+  implicit val BooleanToJson = new JsonConvertible[Boolean] {
+    override type Enc = JsonBoolean
+    override def toJson(a: Boolean) = JsonBoolean(a)
   }
 
-  implicit val HNilToJson: JsonConvertible[HNil] = _ => JsonObject()
-
-  implicit def HConsToJson[H: JsonConvertible, T <: HList : JsonConvertible]: JsonConvertible[H :: T] = { hlist =>
-    val headJson = hlist.head.toJson
-    val tailJson = hlist.tail.toJson.asInstanceOf[JsonObject]
-
-    tailJson + ("key" -> headJson)
+  implicit val IntToJson = new JsonConvertible[Int] {
+    override type Enc = JsonNumber
+    override def toJson(a: Int) = JsonNumber(a)
   }
 
-  implicit class JsonConversion[A: JsonConvertible](a: A) {
-    def toJson: Json = implicitly[JsonConvertible[A]].toJson(a)
+  implicit val DoubleToJson = new JsonConvertible[Double] {
+    override type Enc = JsonNumber
+    override def toJson(a: Double) = JsonNumber(a)
   }
 
-  def toJson[A: JsonConvertible](a: A): Json = a.toJson
+  implicit val StringToJson = new JsonConvertible[String] {
+    override type Enc = JsonString
+    override def toJson(a: String) = JsonString(a)
+  }
+
+  implicit def SeqToJson[A: JsonConvertible, S[B] <: Seq[B]] = new JsonConvertible[S[A]] {
+    override type Enc = JsonArray
+    override def toJson(a: S[A]) = JsonArray(a.map(e => json.toJson(e)): _*)
+  }
+
+  implicit def OptionToJson[A: JsonConvertible, B <: Json] = new JsonConvertible[Option[A]] {
+    override type Enc = Json
+    override def toJson(a: Option[A]) = a match {
+      case Some(b) => json.toJson(b)
+      case None => JsonNull
+    }
+  }
+
+  implicit val HNilToJson = new JsonConvertible[HNil] {
+    override type Enc = JsonObject
+    override def toJson(a: HNil) = JsonObject()
+  }
+
+  implicit def HConsToJson[H, T <: HList]
+  (implicit
+    headConv: JsonConvertible[H],
+    tailConv: JsonConvertible[T]
+  ) = new JsonConvertible[H :: T] {
+    override type Enc = JsonObject
+    override def toJson(a: ::[H, T]) = {
+      val headJson = headConv.toJson(a.head)
+      val tailJson = tailConv.toJson(a.tail).asInstanceOf[JsonObject]
+
+      tailJson + ("key" -> headJson)
+    }
+  }
+
+  implicit class JsonConversion[A](a: A)(implicit val conv: JsonConvertible[A]) {
+    def toJson: conv.Enc = conv.toJson(a)
+  }
+
+  def toJson[A](a: A)(implicit conv: JsonConvertible[A]): conv.Enc = conv.toJson(a)
 }

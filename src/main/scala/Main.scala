@@ -1,5 +1,6 @@
 import models._
 import json._
+import json.models._
 import shapeless._
 
 object Main extends App {
