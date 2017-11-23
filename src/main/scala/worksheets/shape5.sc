@@ -7,7 +7,7 @@ object ListTest {
 
   case object MyNil extends MyList[Nothing]
 
-  type MyNil = Nil.type
+  type MyNil = MyNil.type
 }
 
 import ListTest._
