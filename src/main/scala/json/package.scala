@@ -45,7 +45,7 @@ package object json {
       case _ => throw new Exception("type not supported")
     }
 
-    private def toMethods[T: TypeTag](c: Product): Seq[(String, Json)] = {
+    private def toFields[T: TypeTag](c: Product): Seq[(String, Json)] = {
       val keys = c.getClass.getDeclaredFields.map(_.getName)
       val z = (keys zip c.productIterator.toList) map {
         case (key, value) => (key, convert(value))
@@ -54,8 +54,8 @@ package object json {
       z
     }
 
-    val methods = toMethods(o)
+    val fields = toFields(o)
 
-    override def toJson = JsonObject(methods: _*)
+    override def toJson = JsonObject(fields: _*)
   }
 }
