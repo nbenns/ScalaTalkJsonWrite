@@ -3,13 +3,13 @@ trait Converter[A] {
   def convert(a: A): Out
 }
 
-implicit val intConverter: Converter[Int] = new Converter[Int] {
+implicit val intConverter = new Converter[Int] {
   override type Out = String
 
   override def convert(a: Int) = "String: " + a.toString
 }
 
-implicit val strConverter: Converter[String] = new Converter[String] {
+implicit val strConverter = new Converter[String] {
   override type Out = Int
 
   override def convert(a: String) = a.toInt
@@ -18,6 +18,6 @@ implicit val strConverter: Converter[String] = new Converter[String] {
 def convert[A](a: A)(implicit converter: Converter[A]): converter.Out = converter.convert(a)
 
 
-val s = convert(2)
+val s: String = convert(2)
 
-val i = convert("3")
+val i: Int = convert("3")
