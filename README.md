@@ -8,9 +8,9 @@ Slides are located [here](https://docs.google.com/presentation/d/13akNnJCuATS0mq
 The idea in this talk is to implement a JSON serializer library that we can use with the least amount of effort possible, and the least amount of bleed into our business design.
 <br/>
 <br/>
-We take our new extension method pattern and use it for our model.  
+Get rid of JsonObject and any reference of Json within our models  
 
-## Example 5 - Get rid of JsonObject and any reference of Json within our models
+## Example 5 - Reflection
 
 Now we have abstracted over every type we are using in our models, but can we abstract over the models themselves?
 
