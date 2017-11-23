@@ -38,7 +38,7 @@ def HListRecursion = {
     val headStr = headStringifier.stringify(hlist.head)
     val tailStr = tailStringifier.stringify(hlist.tail)
 
-    headStr + " " + tailStr
+    headStr + ", " + tailStr
   }
 
   stringify(1 :: "abc" :: HNil)
