@@ -9,5 +9,8 @@ implicit class AOps(a: A) {
 
 val a = new A("hello")
 a.display()
+
+// Under the hood
+// AOps(a).display2()
 a.display2()
 
