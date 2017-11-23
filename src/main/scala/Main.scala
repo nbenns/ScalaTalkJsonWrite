@@ -15,5 +15,5 @@ object Main extends App {
     children = List(bart, lisa, maggie)
   )
 
-  println(homer.toJson.stringify)
+  println(simpsons.toJson.stringify)
 }

@@ -45,16 +45,19 @@ package object json {
 
   implicit def HConsToJson[K <: Symbol, H, T <: HList]
   (implicit
-    headConv: JsonConvertible[H],
-    tailConv: JsonConvertible.Aux[T, JsonObject],
+    headConv: Lazy[JsonConvertible[H]],
+    tailConv: Lazy[JsonConvertible.Aux[T, JsonObject]],
     key: Witness.Aux[K]
   ) = new JsonConvertible[FieldType[K, H] :: T] {
     override type Enc = JsonObject
     override def toJson(a: FieldType[K, H] :: T) = {
-      val headJson = headConv.toJson(a.head)
-      val tailJson = tailConv.toJson(a.tail)
+      val headJson = headConv.value.toJson(a.head)
+      val tailJson = tailConv.value.toJson(a.tail)
 
-      tailJson + (key.value.name -> headJson)
+      headJson match {
+        case _: JsonNull => tailJson
+        case _ => tailJson + (key.value.name -> headJson)
+      }
     }
   }
 
