@@ -8,9 +8,9 @@ Slides are located [here](https://docs.google.com/presentation/d/13akNnJCuATS0mq
 The idea in this talk is to implement a JSON serializer library that we can use with the least amount of effort possible, and the least amount of bleed into our business design.
 <br/>
 <br/>
-We take our new extension method pattern and use it for our model.  
+Lets take a step back and try another approach
 
-## Example 6 - Typeclasses vs. Extension Methods
+## Example 6 - The Typeclass Pattern
 
 Extension methods only got us so far.  A lot of the problem is that we can't specifically pull them in for each type, which locked us in with reflection.
 Here we take a step back and change our JsonConverter to take a type parameter and implement the [TypeClass Pattern](http://danielwestheide.com/blog/2013/02/06/the-neophytes-guide-to-scala-part-12-type-classes.html).
