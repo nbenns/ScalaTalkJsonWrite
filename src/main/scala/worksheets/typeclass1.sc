@@ -5,8 +5,13 @@ trait MyTypeclass[A] {
 
 case class MyClass(text: String)
 
+def display[A](a: A, myTypeclass: MyTypeclass[A]): Unit = myTypeclass.display(a)
+
+
+val myClass = MyClass("hello")
+
 val myClassTCInst: MyTypeclass[MyClass] = new MyTypeclass[MyClass] {
   override def display(myCustomClass: MyClass): Unit = println(myCustomClass.text)
 }
 
-def display[A](a: A, myTypeclass: MyTypeclass[A]): Unit = myTypeclass.display(a)
+display(myClass, myClassTCInst)
