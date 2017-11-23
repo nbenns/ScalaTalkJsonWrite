@@ -8,7 +8,7 @@ Slides are located [here](https://docs.google.com/presentation/d/13akNnJCuATS0mq
 The idea in this talk is to implement a JSON serializer library that we can use with the least amount of effort possible, and the least amount of bleed into our business design.
 <br/>  
 
-## Example 8 - Begin Generic abstraction
+## Example 8 - Generic Programming
 
 We start implementing an HList implementation in order to abstract over the shape of our models.
 
